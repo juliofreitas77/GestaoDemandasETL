@@ -1,0 +1,17 @@
+# Ambientes Virtuais
+.venv/
+venv/
+env/
+
+# Banco de Dados Local (Não envie seu db de testes)
+*.sqlite3
+
+# Arquivos de mídia (Seus PDFs técnicos)
+media/
+
+# Configurações do PyCharm
+.idea/
+
+# Arquivos temporários do Python
+__pycache__/
+*.py[cod]
