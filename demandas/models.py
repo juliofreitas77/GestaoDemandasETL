@@ -6,6 +6,7 @@ class DemandaETL(models.Model):
 
     # Novos Campos Solicitados
     id_demanda = models.CharField(max_length=50, verbose_name="ID da Demanda/Ticket")
+    link_jira = models.URLField(max_length=500, blank=True, null=True, verbose_name="Link do Card Jira")
     data_implementacao = models.DateField(blank=True, null=True, verbose_name="Data de Implementação")
     lider_tecnico = models.CharField(max_length=100, verbose_name="TL (Líder Técnico)")
 
@@ -18,7 +19,7 @@ class DemandaETL(models.Model):
     workflow_mapping = models.CharField(max_length=255, verbose_name="Workflow/Mapping")
     origem_destino = models.CharField(max_length=255, help_text="Ex: Oracle CRM -> Teradata DW")
     descricao_solucao = models.TextField(verbose_name="O que foi desenvolvido")
-    script_sql_shell = models.TextField(blank=True, verbose_name="Queries SQL ou Scripts Shell utilizados")
+    script_sql_shell = models.TextField(blank=True, verbose_name="Queries SQL ou Scripts Shell")
     arquivo_tecnico = models.FileField(upload_to='documentos_pc/', verbose_name="Anexo (Proposta Técnica)")
 
     def __str__(self):
