@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class DemandaETL(models.Model):
     COMPLEXIDADE_CHOICES = [('B', 'Baixa'), ('M', 'Média'), ('A', 'Alta')]
@@ -7,12 +8,13 @@ class DemandaETL(models.Model):
     # Novos Campos Solicitados
     id_demanda = models.CharField(max_length=50, verbose_name="ID da Demanda/Ticket")
     link_jira = models.URLField(max_length=500, blank=True, null=True, verbose_name="Link do Card Jira")
-    data_implementacao = models.DateField(blank=True, null=True, verbose_name="Data de Implementação")
+    data_implementacao = models.DateField(null=True, blank=True, verbose_name="Data Limite de Implantação")
     lider_tecnico = models.CharField(max_length=100, verbose_name="TL (Líder Técnico)")
 
     # Campos anteriores (mantidos)
     titulo = models.CharField(max_length=400)
     data_recebimento = models.DateField()
+    data_implementacao = models.DateField(verbose_name="Data Limite de Implantação")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='D')
     complexidade = models.CharField(max_length=1, choices=COMPLEXIDADE_CHOICES, default='B')
     folder_repositorio = models.CharField(max_length=100, verbose_name="Pasta no Repository Manager")
