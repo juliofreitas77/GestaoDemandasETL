@@ -14,17 +14,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
 
 from django.contrib import admin
 from django.urls import path
-from demandas.views import home
+from demandas.views import home, exportar_excel
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', home, name='home'),
+    path('exportar/', exportar_excel, name='exportar_excel'),
 ]
 
-from django.conf import settings
-from django.conf.urls.static import static
+# Isso permite que o Django "enxergue" sua pasta static durante o desenvolvimento
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=os.path.join(settings.BASE_DIR, 'static'))
