@@ -18,7 +18,7 @@ import os
 
 from django.contrib import admin
 from django.urls import path
-from demandas.views import home, exportar_excel
+from demandas.views import home, exportar_excel, excluir_demanda
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -26,6 +26,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('', home, name='home'),
     path('exportar/', exportar_excel, name='exportar_excel'),
+    path('excluir/<int:id>/', excluir_demanda, name='excluir_demanda'),
 ]
 
 # Isso permite que o Django "enxergue" sua pasta static durante o desenvolvimento

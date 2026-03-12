@@ -13,8 +13,12 @@ class DemandaETL(models.Model):
 
     # Campos anteriores (mantidos)
     titulo = models.CharField(max_length=400)
-    data_recebimento = models.DateField()
-    data_implementacao = models.DateField(verbose_name="Data Limite de Implantação")
+    data_recebimento = models.DateField(auto_now_add=True, verbose_name="Data de Recebimento")
+    data_implementacao = models.DateField(
+        verbose_name="Data Limite de Implantação",
+        null=True,  # Permite que o banco de dados aceite valores vazios
+        blank=True  # Permite que o formulário do Admin aceite o campo vazio
+    )
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='D')
     complexidade = models.CharField(max_length=1, choices=COMPLEXIDADE_CHOICES, default='B')
     folder_repositorio = models.CharField(max_length=100, verbose_name="Pasta no Repository Manager")

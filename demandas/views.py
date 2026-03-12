@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, When, Value, IntegerField
 from datetime import date
 from .models import DemandaETL
 from django.http import HttpResponse
@@ -8,13 +8,13 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 
 def home(request):
-    # 1. Captura o termo de busca vindo da URL
     busca = request.GET.get('search')
+    hoje = date.today()
 
-    # 2. Inicia o QuerySet com todas as demandas
-    demandas_queryset = DemandaETL.objects.all().order_by('-data_recebimento')
+    # 1. Definimos o QuerySet inicial
+    demandas_queryset = DemandaETL.objects.all()
 
-    # 3. Aplica filtros de busca, se houver termo digitado
+    # 2. Aplicamos a busca primeiro, se houver
     if busca:
         demandas_queryset = demandas_queryset.filter(
             Q(titulo__icontains=busca) |
@@ -23,6 +23,40 @@ def home(request):
             Q(folder_repositorio__icontains=busca) |
             Q(origem_destino__icontains=busca)
         )
+
+    # 3. Lógica do Semáforo E Atribuição de Peso para Ordenação
+    for d in demandas_queryset:
+        if d.data_implementacao:
+            dias_restantes = (d.data_implementacao - hoje).days
+            if dias_restantes < 0:
+                d.risco_cor = "danger"
+                d.risco_texto = f"Atrasada ({abs(dias_restantes)}d)"
+                d.peso_prioridade = 1  # Prioridade Máxima
+            elif dias_restantes <= 3:
+                d.risco_cor = "warning"
+                d.risco_texto = "Prazo Crítico"
+                d.peso_prioridade = 2  # Prioridade Alta
+            else:
+                d.risco_cor = "success"
+                d.risco_texto = "No Prazo"
+                d.peso_prioridade = 3  # Normal
+        else:
+            d.risco_cor = "secondary"
+            d.risco_texto = "Sem data alvo"
+            d.peso_prioridade = 4  # Menor prioridade visual
+
+            # NOVO: Cálculo de Tempo de Execução (Lead Time)
+        if d.status == 'P' and d.data_implementacao:
+            # Diferença entre Implantação e Recebimento
+            delta = d.data_implementacao - d.data_recebimento
+            d.tempo_execucao = delta.days
+            if d.tempo_execucao < 0: d.tempo_execucao = 0  # Evita erro se datas forem invertidas
+        else:
+            d.tempo_execucao = None
+
+    # 4. Ordenação manual da lista (Python) baseada no peso de risco
+    # Isso garante que as atrasadas fiquem no topo
+    demandas_ordenadas = sorted(demandas_queryset, key=lambda x: x.peso_prioridade)
 
     # 4. Cálculos para os Cards do Dashboard
     total = demandas_queryset.count()
@@ -131,3 +165,10 @@ def exportar_excel(request):
     wb.save(response)
 
     return response
+
+from django.shortcuts import redirect, get_object_or_404
+
+def excluir_demanda(request, id):
+    demanda = get_object_or_404(DemandaETL, id=id)
+    demanda.delete()
+    return redirect('home')
