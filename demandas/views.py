@@ -1,10 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q, Count, Case, When, Value, IntegerField
 from datetime import date
 from .models import DemandaETL
 from django.http import HttpResponse
+from django.contrib import messages
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from .forms import DemandaETLForm
 
 
 def home(request):
@@ -166,9 +168,60 @@ def exportar_excel(request):
 
     return response
 
-from django.shortcuts import redirect, get_object_or_404
+
+def alterar_status(request, id):
+    """Altera o status da demanda"""
+    demanda = get_object_or_404(DemandaETL, id=id)
+
+    if request.method == 'POST':
+        novo_status = request.POST.get('status')
+
+        if novo_status in ['D', 'T', 'P']:
+            demanda.status = novo_status
+            demanda.save()
+
+            messages.success(
+                request,
+                f'Status alterado para {demanda.get_status_display()} com sucesso!'
+            )
+        else:
+            messages.error(request, 'Status inválido.')
+
+    return redirect('home')
 
 def excluir_demanda(request, id):
     demanda = get_object_or_404(DemandaETL, id=id)
-    demanda.delete()
+
+    if request.method == "POST":
+        demanda.delete()
+        messages.success(request, "Demanda excluída com sucesso!")
+
+    return redirect('home')
+
+def editar_demanda(request, id):
+    demanda = get_object_or_404(DemandaETL, id=id)
+
+    if request.method == 'POST':
+        form = DemandaETLForm(request.POST, instance=demanda)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Demanda atualizada com sucesso!")
+            return redirect('home')
+    else:
+        form = DemandaETLForm(instance=demanda)
+
+    return render(request, 'demandas/editar_demanda.html', {
+        'form': form,
+        'demanda': demanda
+    })
+
+
+def deletar_demanda(request, id):
+    demanda = get_object_or_404(DemandaETL, id=id)
+
+    if request.method == "POST":
+        titulo = demanda.titulo
+        demanda.delete()
+        messages.success(request, f"Demanda '{titulo}' excluída com sucesso!")
+
     return redirect('home')

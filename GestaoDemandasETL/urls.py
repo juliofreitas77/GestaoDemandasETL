@@ -18,6 +18,8 @@ import os
 
 from django.contrib import admin
 from django.urls import path
+
+from demandas import views
 from demandas.views import home, exportar_excel, excluir_demanda
 from django.conf import settings
 from django.conf.urls.static import static
@@ -26,6 +28,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('', home, name='home'),
     path('exportar/', exportar_excel, name='exportar_excel'),
+    path('alterar-status/<int:id>/', views.alterar_status, name='alterar_status'),
+    path('editar/<int:id>/', views.editar_demanda, name='editar_demanda'),
     path('excluir/<int:id>/', excluir_demanda, name='excluir_demanda'),
 ]
 

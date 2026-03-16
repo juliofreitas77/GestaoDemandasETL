@@ -3,7 +3,7 @@ from django.utils import timezone
 
 class DemandaETL(models.Model):
     COMPLEXIDADE_CHOICES = [('B', 'Baixa'), ('M', 'Média'), ('A', 'Alta')]
-    STATUS_CHOICES = [('D', 'Desenvolvimento'), ('T', 'Homologação'), ('P', 'Produção')]
+    STATUS_CHOICES = [('D', 'Desenvolvimento'), ('T', 'Testes/Homologação'), ('P', 'Produção')]
 
     # Novos Campos Solicitados
     id_demanda = models.CharField(max_length=50, verbose_name="ID da Demanda/Ticket")
@@ -27,6 +27,15 @@ class DemandaETL(models.Model):
     descricao_solucao = models.TextField(verbose_name="O que foi desenvolvido")
     script_sql_shell = models.TextField(blank=True, verbose_name="Queries SQL ou Scripts Shell")
     arquivo_tecnico = models.FileField(upload_to='documentos_pc/', verbose_name="Anexo (Proposta Técnica)")
+
+    def get_status_display_badge(self):
+        """Retorna classe CSS do badge conforme status"""
+        badges = {
+            'D': 'warning',
+            'T': 'info',
+            'P': 'success',
+        }
+        return badges.get(self.status, 'secondary')
 
     def __str__(self):
         return f"{self.id_demanda} - {self.titulo}"
