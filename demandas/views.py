@@ -10,13 +10,18 @@ from .forms import DemandaETLForm
 
 
 def home(request):
-    busca = request.GET.get('search') or request.GET.get('q') # Suporte para ambos os nomes de busca
+    busca = request.GET.get('search') or request.GET.get('q')
+    ver_producao = request.GET.get('ver_producao') == 'on'
     hoje = date.today()
 
     # 1. QuerySet inicial
     demandas_queryset = DemandaETL.objects.all()
 
-    # 2. Aplicar busca se houver
+    # 2. Aplicar Filtro de Produção (Ocultar por padrão)
+    if not ver_producao:
+        demandas_queryset = demandas_queryset.exclude(status='P')
+
+    # 3. Aplicar busca por texto
     if busca:
         demandas_queryset = demandas_queryset.filter(
             Q(titulo__icontains=busca) |
@@ -25,9 +30,9 @@ def home(request):
             Q(folder_repositorio__icontains=busca)
         )
 
-    # 3. Lógica ÚNICA de Semáforo, Lead Time e Prioridade
+    # 4. Loop ÚNICO para processar Semáforo, Lead Time e Pesos
     for d in demandas_queryset:
-        # Semáforo e Prioridade
+        # Cálculo de Semáforo e Peso de Prioridade
         if d.data_implementacao:
             dias_restantes = (d.data_implementacao - hoje).days
             if dias_restantes < 0:
@@ -47,23 +52,24 @@ def home(request):
             d.semaforo_msg = "Sem Data"
             d.peso_prioridade = 4
 
-        # Lead Time (Tempo de Execução)
+        # Cálculo de Lead Time (Tempo de Execução)
         if d.status == 'P' and d.data_implementacao:
             delta = d.data_implementacao - d.data_recebimento
             d.tempo_execucao = max(0, delta.days)
         else:
             d.tempo_execucao = None
 
-    # 4. ORDENAÇÃO: Garantir que a lista ordenada seja a enviada
-    demandas_final = sorted(demandas_queryset, key=lambda x: x.peso_prioridade)
+    # 5. Ordenação Segura (Garante que todas tenham o atributo)
+    demandas_final = sorted(demandas_queryset, key=lambda x: getattr(x, 'peso_prioridade', 4))
 
-    # 5. Cálculos dos Cards (sempre baseados no queryset filtrado)
-    total = demandas_queryset.count()
-    em_desenv = demandas_queryset.filter(status='D').count()
-    alta = demandas_queryset.filter(complexidade='A').count()
+    # 6. Estatísticas para os Cards (Baseadas no total geral do banco)
+    # Usamos .all() aqui para os números do topo não sumirem ao filtrar a lista
+    total_geral = DemandaETL.objects.count()
+    em_desenv = DemandaETL.objects.filter(status='D').count()
+    alta = DemandaETL.objects.filter(complexidade='A').count()
 
-    # 6. Gráfico de Status
-    stats_status = demandas_queryset.values('status').annotate(total=Count('status'))
+    # 7. Dados para o Gráfico
+    stats_status = DemandaETL.objects.values('status').annotate(total=Count('status'))
     labels = []
     data_grafico = []
     status_map = dict(DemandaETL.STATUS_CHOICES)
@@ -72,11 +78,12 @@ def home(request):
         data_grafico.append(s['total'])
 
     context = {
-        'demandas': demandas_final, # ENVIANDO A LISTA COM SEMÁFORO E ORDEM
-        'total': total,
+        'demandas': demandas_final,
+        'total': total_geral,
         'em_desenv': em_desenv,
         'alta': alta,
         'valor_busca': busca,
+        'ver_producao': ver_producao,
         'labels': labels,
         'data_grafico': data_grafico,
     }

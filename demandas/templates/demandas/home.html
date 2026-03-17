@@ -33,10 +33,8 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
-        /* Títulos */
         h2, h3, h5 { font-weight: 700; color: var(--primary-dark); }
 
-        /* Cards de Estatísticas */
         .card-stats {
             border: none;
             border-radius: 12px;
@@ -61,7 +59,6 @@
             color: var(--text-muted);
         }
 
-        /* Lista de Demandas */
         .demanda-item {
             background: #fff;
             border: 1px solid #e0e7ff;
@@ -70,12 +67,17 @@
         }
         .demanda-item:hover { border-color: var(--accent-blue); }
 
-        /* Semáforo Pulse Effect */
         .dot {
             height: 12px;
             width: 12px;
             border-radius: 50%;
             display: inline-block;
+        }
+
+        .filter-switch {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
         }
     </style>
 </head>
@@ -112,30 +114,36 @@
     {% endif %}
 
     <div class="row mb-4 g-3">
-        <div class="col-md-4">
-            <div class="card card-stats border-total p-4">
-                <span class="card-label mb-2 d-block">Total de Demandas</span>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0" style="color: #2563eb;">{{ total }}</h2>
-                    <i class="bi bi-layers-fill fs-1 opacity-25"></i>
+        <div class="col-md-8">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card card-stats border-total p-4 h-100">
+                        <span class="card-label mb-2 d-block">Total de Demandas</span>
+                        <h2 class="mb-0" style="color: #2563eb;">{{ total }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-stats border-desenv p-4 h-100">
+                        <span class="card-label mb-2 d-block">Em Desenvolvimento</span>
+                        <h2 class="mb-0" style="color: #f59e0b;">{{ em_desenv }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-stats border-alta p-4 h-100">
+                        <span class="card-label mb-2 d-block">Alta Complexidade</span>
+                        <h2 class="mb-0" style="color: #d32f2f;">{{ alta }}</h2>
+                    </div>
                 </div>
             </div>
         </div>
+
         <div class="col-md-4">
-            <div class="card card-stats border-desenv p-4">
-                <span class="card-label mb-2 d-block">Em Desenvolvimento</span>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0" style="color: #f59e0b;">{{ em_desenv }}</h2>
-                    <i class="bi bi-gear-wide-connected fs-1 opacity-25"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card card-stats border-alta p-4">
-                <span class="card-label mb-2 d-block">Alta Complexidade</span>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0" style="color: #d32f2f;">{{ alta }}</h2>
-                    <i class="bi bi-fire fs-1 opacity-25"></i>
+            <div class="card card-stats shadow-sm border-0 h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center p-2">
+                    <span class="card-label mb-2 fw-bold text-center">Status Histórico</span>
+                    <div style="height: 120px; width: 100%;">
+                        <canvas id="statusChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -145,9 +153,15 @@
         <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
             <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Monitoramento de Prazos</h5>
 
-            <form method="get" class="d-flex gap-2">
+            <form method="get" class="d-flex gap-3 align-items-center">
+                <div class="form-check form-switch filter-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="ver_producao" id="verProducao"
+                           {% if ver_producao %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label" for="verProducao">Ver Produção</label>
+                </div>
+
                 <div class="input-group input-group-sm">
-                    <input type="text" name="q" class="form-control border-end-0" placeholder="Buscar Mapping..." value="{{ request.GET.q }}">
+                    <input type="text" name="search" class="form-control border-end-0" placeholder="Buscar Mapping..." value="{{ valor_busca|default:'' }}">
                     <button type="submit" class="btn btn-primary border-start-0"><i class="bi bi-search"></i></button>
                 </div>
                 <a href="{% url 'home' %}" class="btn btn-sm btn-success rounded-pill px-3">
@@ -158,11 +172,11 @@
 
         <div class="card-body p-4 bg-light-subtle">
             {% for demanda in demandas %}
-            <div class="demanda-item p-3 mb-3 shadow-sm border-start-0">
+            <div class="demanda-item p-3 mb-3 shadow-sm">
                 <div class="row align-items-center">
                     <div class="col-md-3">
                         <div class="d-flex align-items-center">
-                            <span class="dot bg-{{ demanda.semaforo_cor }} me-2 shadow-sm" title="{{ demanda.semaforo_msg }}"></span>
+                            <span class="dot bg-{{ demanda.semaforo_cor }} me-2 shadow-sm"></span>
                             <div>
                                 <small class="text-muted d-block" style="font-size: 0.7rem; font-weight: 700;">IMPLANTAÇÃO</small>
                                 <span class="fw-bold {% if demanda.semaforo_cor == 'danger' %}text-danger{% endif %}">
@@ -171,26 +185,26 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="col-md-5">
                         <h6 class="mb-0 fw-bold">{{ demanda.titulo }}</h6>
                         <small class="text-muted">#{{ demanda.id_demanda }} | {{ demanda.workflow_mapping }}</small>
                     </div>
-
                     <div class="col-md-4 text-end">
                         <div class="btn-group me-2">
-                            <button class="btn btn-sm btn-{{ demanda.semaforo_cor }} py-1 px-3 rounded-pill fw-bold dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 0.75rem;">
+                            <button class="btn btn-sm btn-{{ demanda.semaforo_cor }} py-1 px-3 rounded-pill fw-bold dropdown-toggle" data-bs-toggle="dropdown">
                                 {{ demanda.get_status_display }}
                             </button>
                             <ul class="dropdown-menu shadow border-0">
-                                <li><a class="dropdown-item small" href="#"><i class="bi bi-code-slash text-warning me-2"></i>Desenvolvimento</a></li>
-                                <li><a class="dropdown-item small" href="#"><i class="bi bi-bug text-info me-2"></i>Testes</a></li>
-                                <li><a class="dropdown-item small" href="#"><i class="bi bi-check-circle text-success me-2"></i>Produção</a></li>
-                            </ul>
+                                <li>
+                                    <form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}
+                                        <input type="hidden" name="status" value="D">
+                                        <button type="submit" class="dropdown-item small">Desenvolvimento</button>
+                                    </form>
+                                </li>
+                                </ul>
                         </div>
-
                         <div class="btn-group">
-                            <a href="{% url 'editar_demanda' demanda.id %}" class="btn btn-sm btn-outline-secondary border-0" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                            <a href="{% url 'editar_demanda' demanda.id %}" class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil-square"></i></a>
                             <button class="btn btn-sm btn-outline-danger border-0" data-bs-toggle="modal" data-bs-target="#confirmDelete{{ demanda.id }}"><i class="bi bi-trash3-fill"></i></button>
                             <button class="btn btn-sm btn-outline-primary border-0" data-bs-toggle="collapse" data-bs-target="#detalhes{{ demanda.id }}"><i class="bi bi-eye-fill"></i></button>
                         </div>
@@ -199,23 +213,19 @@
 
                 <div class="collapse mt-3 pt-3 border-top" id="detalhes{{ demanda.id }}">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <h6 class="card-label text-primary"><i class="bi bi-info-circle me-1"></i>Informações Técnicas</h6>
+                        <div class="col-md-4 border-end">
+                            <h6 class="card-label text-primary">DETALHES</h6>
                             <ul class="list-unstyled small mt-2">
-                                <li><strong>Pasta:</strong> {{ demanda.folder_repositorio }}</li>
-                                <li><strong>TL Responsável:</strong> {{ demanda.lider_tecnico }}</li>
-                                <li><strong>Data Recebimento:</strong> {{ demanda.data_recebimento|date:"d/m/Y" }}</li>
-                                {% if demanda.link_jira %}
-                                <li class="mt-2"><a href="{{ demanda.link_jira }}" target="_blank" class="text-decoration-none fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i>Ver no Jira</a></li>
+                                <li><strong>TL:</strong> {{ demanda.lider_tecnico }}</li>
+                                <li><strong>Rec.:</strong> {{ demanda.data_recebimento|date:"d/m/Y" }}</li>
+                                {% if demanda.tempo_execucao %}
+                                <li class="mt-2 text-success fw-bold"><i class="bi bi-stopwatch me-1"></i>Entrega: {{ demanda.tempo_execucao }} dias</li>
                                 {% endif %}
                             </ul>
                         </div>
                         <div class="col-md-8">
-                            <h6 class="card-label text-primary"><i class="bi bi-file-earmark-code me-1"></i>Solução e Scripts</h6>
+                            <h6 class="card-label text-primary">SOLUÇÃO</h6>
                             <p class="small text-secondary mt-2">{{ demanda.descricao_solucao }}</p>
-                            {% if demanda.script_sql_shell %}
-                            <pre class="bg-dark text-info p-3 rounded-3 small"><code>{{ demanda.script_sql_shell }}</code></pre>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -223,21 +233,18 @@
 
             <div class="modal fade" id="confirmDelete{{ demanda.id }}" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-content border-0">
                         <div class="modal-header bg-danger text-white border-0">
-                            <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Excluir Demanda</h5>
+                            <h5 class="modal-title fw-bold">Excluir Demanda</h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body p-4 text-center">
-                            <p class="mb-1">Deseja realmente excluir a demanda:</p>
-                            <h5 class="fw-bold">{{ demanda.titulo }}</h5>
-                            <p class="text-muted small mt-2">Esta ação é irreversível.</p>
+                            <p>Deseja excluir permanentemente: <strong>{{ demanda.titulo }}</strong>?</p>
                         </div>
                         <div class="modal-footer border-0 justify-content-center">
                             <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                            <form method="POST" action="{% url 'excluir_demanda' demanda.id %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger rounded-pill px-4">Confirmar Exclusão</button>
+                            <form method="POST" action="{% url 'excluir_demanda' demanda.id %}">{% csrf_token %}
+                                <button type="submit" class="btn btn-danger rounded-pill px-4">Excluir</button>
                             </form>
                         </div>
                     </div>
@@ -246,18 +253,39 @@
             {% empty %}
             <div class="text-center py-5">
                 <i class="bi bi-search fs-1 text-muted opacity-25"></i>
-                <p class="text-muted mt-3">Nenhuma demanda encontrada.</p>
+                <p class="text-muted mt-3">Nenhuma demanda ativa encontrada.</p>
             </div>
             {% endfor %}
         </div>
     </div>
 </div>
 
-<footer class="text-center py-4 mt-5 border-top">
-    <p class="mb-0 text-muted small fw-bold">ETL Demand Center | Gestão Informatica PowerCenter & IICS</p>
-    <small class="text-muted">Desenvolvido por Júlio César S. Freitas</small>
-</footer>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+        const colors = ['#f59e0b', '#007fff', '#198754'];
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ labels|safe|default:"[]" }},
+                datasets: [{
+                    data: {{ data_grafico|safe|default:"[]" }},
+                    backgroundColor: colors,
+                    hoverOffset: 4,
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                cutout: '70%'
+            }
+        });
+    });
+</script>
 </body>
 </html>
