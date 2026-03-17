@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Q, Count, Case, When, Value, IntegerField
+from django.db.models import Q, Count, Case, When, Value, IntegerField, Avg
 from datetime import date
 from .models import DemandaETL
 from django.http import HttpResponse
@@ -30,6 +30,18 @@ def home(request):
             Q(folder_repositorio__icontains=busca)
         )
 
+    demandas_concluidas = DemandaETL.objects.filter(status='P').exclude(data_implementacao__isnull=True)
+    soma_dias = 0
+    count_concluidas = demandas_concluidas.count()
+
+    for d in demandas_concluidas:
+        delta = d.data_implementacao - d.data_recebimento
+        soma_dias += max(0, delta.days)
+
+    media_lead_time = round(soma_dias / count_concluidas, 1) if count_concluidas > 0 else 0
+
+
+
     # 4. Loop ÚNICO para processar Semáforo, Lead Time e Pesos
     for d in demandas_queryset:
         # Cálculo de Semáforo e Peso de Prioridade
@@ -59,6 +71,20 @@ def home(request):
         else:
             d.tempo_execucao = None
 
+        # Lógica de Porcentagem para a Barra de Progresso
+        if d.status == 'D':
+            d.progresso = 30
+            d.progresso_cor = "warning"
+        elif d.status == 'T':
+            d.progresso = 70
+            d.progresso_cor = "info"
+        elif d.status == 'P':
+            d.progresso = 100
+            d.progresso_cor = "success"
+        else:
+            d.progresso = 0
+            d.progresso_cor = "secondary"
+
     # 5. Ordenação Segura (Garante que todas tenham o atributo)
     demandas_final = sorted(demandas_queryset, key=lambda x: getattr(x, 'peso_prioridade', 4))
 
@@ -86,6 +112,7 @@ def home(request):
         'ver_producao': ver_producao,
         'labels': labels,
         'data_grafico': data_grafico,
+        'media_lead_time': media_lead_time,
     }
     return render(request, 'demandas/home.html', context)
 
@@ -153,7 +180,6 @@ def exportar_excel(request):
 
     return response
 
-
 def alterar_status(request, id):
     """Altera o status da demanda"""
     demanda = get_object_or_404(DemandaETL, id=id)
@@ -171,7 +197,6 @@ def alterar_status(request, id):
             )
         else:
             messages.error(request, 'Status inválido.')
-
     return redirect('home')
 
 def excluir_demanda(request, id):
@@ -199,7 +224,6 @@ def editar_demanda(request, id):
         'form': form,
         'demanda': demanda
     })
-
 
 def deletar_demanda(request, id):
     demanda = get_object_or_404(DemandaETL, id=id)

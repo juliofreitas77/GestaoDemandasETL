@@ -64,6 +64,7 @@
             border: 1px solid #e0e7ff;
             border-radius: 12px;
             transition: 0.2s;
+            margin-bottom: 1rem;
         }
         .demanda-item:hover { border-color: var(--accent-blue); }
 
@@ -72,12 +73,6 @@
             width: 12px;
             border-radius: 50%;
             display: inline-block;
-        }
-
-        .filter-switch {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted);
         }
     </style>
 </head>
@@ -114,36 +109,41 @@
     {% endif %}
 
     <div class="row mb-4 g-3">
-        <div class="col-md-8">
+        <div class="col-md-9">
             <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="card card-stats border-total p-4 h-100">
-                        <span class="card-label mb-2 d-block">Total de Demandas</span>
-                        <h2 class="mb-0" style="color: #2563eb;">{{ total }}</h2>
+                <div class="col-md-3">
+                    <div class="card card-stats border-total p-3 h-100">
+                        <span class="card-label mb-1 d-block">Total</span>
+                        <h3 class="mb-0 fw-bold" style="color: #2563eb;">{{ total }}</h3>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card card-stats border-desenv p-4 h-100">
-                        <span class="card-label mb-2 d-block">Em Desenvolvimento</span>
-                        <h2 class="mb-0" style="color: #f59e0b;">{{ em_desenv }}</h2>
+                <div class="col-md-3">
+                    <div class="card card-stats border-desenv p-3 h-100">
+                        <span class="card-label mb-1 d-block">Em Desenv.</span>
+                        <h3 class="mb-0 fw-bold" style="color: #f59e0b;">{{ em_desenv }}</h3>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card card-stats border-alta p-4 h-100">
-                        <span class="card-label mb-2 d-block">Alta Complexidade</span>
-                        <h2 class="mb-0" style="color: #d32f2f;">{{ alta }}</h2>
+                <div class="col-md-3">
+                    <div class="card card-stats border-alta p-3 h-100">
+                        <span class="card-label mb-1 d-block">Alta Complex.</span>
+                        <h3 class="mb-0 fw-bold" style="color: #d32f2f;">{{ alta }}</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-stats p-3 h-100 shadow-sm" style="border-left: 6px solid #198754 !important;">
+                        <span class="card-label mb-1 d-block text-success">Média Entrega</span>
+                        <div class="d-flex align-items-baseline">
+                            <h3 class="mb-0 fw-bold text-success">{{ media_lead_time }}</h3>
+                            <small class="ms-1 text-muted">dias</small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card card-stats shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center p-2">
-                    <span class="card-label mb-2 fw-bold text-center">Status Histórico</span>
-                    <div style="height: 120px; width: 100%;">
-                        <canvas id="statusChart"></canvas>
-                    </div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center p-1">
+                    <canvas id="statusChart" style="max-height: 100px;"></canvas>
                 </div>
             </div>
         </div>
@@ -152,9 +152,8 @@
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
             <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Monitoramento de Prazos</h5>
-
-            <form method="get" class="d-flex gap-3 align-items-center">
-                <div class="form-check form-switch filter-switch mb-0">
+            <form method="get" class="d-flex gap-2 align-items-center">
+                <div class="form-check form-switch filter-switch mb-0 me-2">
                     <input class="form-check-input" type="checkbox" name="ver_producao" id="verProducao"
                            {% if ver_producao %}checked{% endif %} onchange="this.form.submit()">
                     <label class="form-check-label" for="verProducao">Ver Produção</label>
@@ -164,15 +163,20 @@
                     <input type="text" name="search" class="form-control border-end-0" placeholder="Buscar Mapping..." value="{{ valor_busca|default:'' }}">
                     <button type="submit" class="btn btn-primary border-start-0"><i class="bi bi-search"></i></button>
                 </div>
-                <a href="{% url 'home' %}" class="btn btn-sm btn-success rounded-pill px-3">
-                    <i class="bi bi-plus-lg"></i>
+
+                <a href="{% url 'exportar_excel' %}?search={{ valor_busca|default:'' }}&ver_producao={% if ver_producao %}on{% endif %}"
+                   class="btn btn-sm btn-success px-3 shadow-sm"
+                   title="Exportar Relatório Excel">
+                    <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar
                 </a>
+
             </form>
+
         </div>
 
         <div class="card-body p-4 bg-light-subtle">
             {% for demanda in demandas %}
-            <div class="demanda-item p-3 mb-3 shadow-sm">
+            <div class="demanda-item p-3 shadow-sm">
                 <div class="row align-items-center">
                     <div class="col-md-3">
                         <div class="d-flex align-items-center">
@@ -185,10 +189,26 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="col-md-5">
-                        <h6 class="mb-0 fw-bold">{{ demanda.titulo }}</h6>
-                        <small class="text-muted">#{{ demanda.id_demanda }} | {{ demanda.workflow_mapping }}</small>
+                        <h6 class="mb-1 fw-bold">{{ demanda.titulo }}</h6>
+                        <div class="d-flex align-items-center">
+                            <small class="text-muted me-3">#{{ demanda.id_demanda }}</small>
+                            <div class="progress w-100" style="height: 6px; background-color: #e9ecef;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ demanda.progresso_cor }}"
+                                     role="progressbar"
+                                     style="width: {{ demanda.progresso }}%;"
+                                     aria-valuenow="{{ demanda.progresso }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                            <small class="ms-2 fw-bold text-{{ demanda.progresso_cor }}" style="font-size: 0.7rem;">
+                                {{ demanda.progresso }}%
+                            </small>
+                        </div>
                     </div>
+
                     <div class="col-md-4 text-end">
                         <div class="btn-group me-2">
                             <button class="btn btn-sm btn-{{ demanda.semaforo_cor }} py-1 px-3 rounded-pill fw-bold dropdown-toggle" data-bs-toggle="dropdown">
@@ -201,7 +221,19 @@
                                         <button type="submit" class="dropdown-item small">Desenvolvimento</button>
                                     </form>
                                 </li>
-                                </ul>
+                                <li>
+                                    <form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}
+                                        <input type="hidden" name="status" value="T">
+                                        <button type="submit" class="dropdown-item small">Testes</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}
+                                        <input type="hidden" name="status" value="P">
+                                        <button type="submit" class="dropdown-item small">Produção</button>
+                                    </form>
+                                </li>
+                            </ul>
                         </div>
                         <div class="btn-group">
                             <a href="{% url 'editar_demanda' demanda.id %}" class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil-square"></i></a>
@@ -218,14 +250,21 @@
                             <ul class="list-unstyled small mt-2">
                                 <li><strong>TL:</strong> {{ demanda.lider_tecnico }}</li>
                                 <li><strong>Rec.:</strong> {{ demanda.data_recebimento|date:"d/m/Y" }}</li>
+                                <li><strong>Workflow:</strong> {{ demanda.workflow_mapping }}</li>
                                 {% if demanda.tempo_execucao %}
                                 <li class="mt-2 text-success fw-bold"><i class="bi bi-stopwatch me-1"></i>Entrega: {{ demanda.tempo_execucao }} dias</li>
+                                {% endif %}
+                                {% if demanda.link_jira %}
+                                <li class="mt-1"><a href="{{ demanda.link_jira }}" target="_blank" class="text-decoration-none fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir Jira</a></li>
                                 {% endif %}
                             </ul>
                         </div>
                         <div class="col-md-8">
                             <h6 class="card-label text-primary">SOLUÇÃO</h6>
                             <p class="small text-secondary mt-2">{{ demanda.descricao_solucao }}</p>
+                            {% if demanda.script_sql_shell %}
+                                <pre class="bg-dark text-info p-2 rounded small"><code>{{ demanda.script_sql_shell }}</code></pre>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -259,6 +298,11 @@
         </div>
     </div>
 </div>
+
+<footer class="text-center py-4 mt-5 border-top">
+    <p class="mb-0 text-muted small fw-bold">ETL Demand Center | Gestão Informatica PowerCenter & IICS</p>
+    <small class="text-muted">Desenvolvido por Júlio César S. Freitas</small>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
