@@ -10,91 +10,69 @@ from .forms import DemandaETLForm
 
 
 def home(request):
-    busca = request.GET.get('search')
+    busca = request.GET.get('search') or request.GET.get('q') # Suporte para ambos os nomes de busca
     hoje = date.today()
 
-    # 1. Definimos o QuerySet inicial
+    # 1. QuerySet inicial
     demandas_queryset = DemandaETL.objects.all()
 
-    # 2. Aplicamos a busca primeiro, se houver
+    # 2. Aplicar busca se houver
     if busca:
         demandas_queryset = demandas_queryset.filter(
             Q(titulo__icontains=busca) |
             Q(id_demanda__icontains=busca) |
             Q(workflow_mapping__icontains=busca) |
-            Q(folder_repositorio__icontains=busca) |
-            Q(origem_destino__icontains=busca)
+            Q(folder_repositorio__icontains=busca)
         )
 
-    # 3. Lógica do Semáforo E Atribuição de Peso para Ordenação
+    # 3. Lógica ÚNICA de Semáforo, Lead Time e Prioridade
     for d in demandas_queryset:
+        # Semáforo e Prioridade
         if d.data_implementacao:
             dias_restantes = (d.data_implementacao - hoje).days
             if dias_restantes < 0:
-                d.risco_cor = "danger"
-                d.risco_texto = f"Atrasada ({abs(dias_restantes)}d)"
-                d.peso_prioridade = 1  # Prioridade Máxima
+                d.semaforo_cor = "danger"
+                d.semaforo_msg = f"Atrasada ({abs(dias_restantes)}d)"
+                d.peso_prioridade = 1
             elif dias_restantes <= 3:
-                d.risco_cor = "warning"
-                d.risco_texto = "Prazo Crítico"
-                d.peso_prioridade = 2  # Prioridade Alta
+                d.semaforo_cor = "warning"
+                d.semaforo_msg = "Urgente"
+                d.peso_prioridade = 2
             else:
-                d.risco_cor = "success"
-                d.risco_texto = "No Prazo"
-                d.peso_prioridade = 3  # Normal
+                d.semaforo_cor = "success"
+                d.semaforo_msg = "No Prazo"
+                d.peso_prioridade = 3
         else:
-            d.risco_cor = "secondary"
-            d.risco_texto = "Sem data alvo"
-            d.peso_prioridade = 4  # Menor prioridade visual
+            d.semaforo_cor = "secondary"
+            d.semaforo_msg = "Sem Data"
+            d.peso_prioridade = 4
 
-            # NOVO: Cálculo de Tempo de Execução (Lead Time)
+        # Lead Time (Tempo de Execução)
         if d.status == 'P' and d.data_implementacao:
-            # Diferença entre Implantação e Recebimento
             delta = d.data_implementacao - d.data_recebimento
-            d.tempo_execucao = delta.days
-            if d.tempo_execucao < 0: d.tempo_execucao = 0  # Evita erro se datas forem invertidas
+            d.tempo_execucao = max(0, delta.days)
         else:
             d.tempo_execucao = None
 
-    # 4. Ordenação manual da lista (Python) baseada no peso de risco
-    # Isso garante que as atrasadas fiquem no topo
-    demandas_ordenadas = sorted(demandas_queryset, key=lambda x: x.peso_prioridade)
+    # 4. ORDENAÇÃO: Garantir que a lista ordenada seja a enviada
+    demandas_final = sorted(demandas_queryset, key=lambda x: x.peso_prioridade)
 
-    # 4. Cálculos para os Cards do Dashboard
+    # 5. Cálculos dos Cards (sempre baseados no queryset filtrado)
     total = demandas_queryset.count()
     em_desenv = demandas_queryset.filter(status='D').count()
     alta = demandas_queryset.filter(complexidade='A').count()
 
-    # 5. Lógica do Semáforo de Prazos (RAG)
-    hoje = date.today()
-    for d in demandas_queryset:
-        if d.data_implementacao:
-            dias_restantes = (d.data_implementacao - hoje).days
-            if dias_restantes < 0:
-                d.risco_cor = "danger"  # Vermelho: Atrasado
-                d.risco_texto = f"Atrasada ({abs(dias_restantes)}d)"
-            elif dias_restantes <= 3:
-                d.risco_cor = "warning"  # Amarelo: Prazo Crítico
-                d.risco_texto = "Prazo Crítico"
-            else:
-                d.risco_cor = "success"  # Verde: No Prazo
-                d.risco_texto = "No Prazo"
-        else:
-            d.risco_cor = "secondary"  # Cinza: Sem data
-            d.risco_texto = "Sem data alvo"
-
-    # 6. Dados para o Gráfico de Status
+    # 6. Gráfico de Status
     stats_status = demandas_queryset.values('status').annotate(total=Count('status'))
     labels = []
     data_grafico = []
     status_map = dict(DemandaETL.STATUS_CHOICES)
-
     for s in stats_status:
         labels.append(status_map.get(s['status']))
         data_grafico.append(s['total'])
 
     context = {
-        'demandas': demandas_queryset,
+        'demandas': demandas_final, # ENVIANDO A LISTA COM SEMÁFORO E ORDEM
         'total': total,
         'em_desenv': em_desenv,
         'alta': alta,
