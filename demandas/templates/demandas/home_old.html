@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETL Demand Center | Monitoramento</title>
+
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/atom-one-dark.min.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+
+    <style>
+        /* Identidade Visual */
+        .gradient-custom { background: linear-gradient(90deg, #1cb5e0 0%, #000851 100%); }
+        .card-stats { transition: transform 0.2s; border-radius: 12px; }
+        .card-stats:hover { transform: scale(1.02); }
+
+        /* Ajustes Accordion */
+        .accordion-button:not(.collapsed) { background-color: #f8f9fa; color: #000; box-shadow: none; }
+        .accordion-item { border-radius: 8px !important; overflow: hidden; margin-bottom: 5px; }
+
+        <button type="button"
+            class="btn btn-sm btn-outline-danger me-3"
+            data-bs-toggle="modal"
+            data-bs-target="#deleteModal{{ demanda.id }}"
+            onclick="event.stopPropagation();"
+            title="Excluir demanda">
+            <i class="bi bi-trash-fill"></i>
+        </button>
+
+
+
+        /* Código SQL */
+        pre code { display: block; padding: 1.2rem; max-height: 400px; overflow-x: auto; font-size: 0.85rem; border-radius: 8px; }
+
+        /* Modal de Confirmação */
+        .modal-confirm-icon { font-size: 3.5rem; color: #dc3545; display: block; margin-bottom: 15px; }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark gradient-custom mb-4 shadow-sm">
+    <div class="container">
+        <span class="navbar-brand mb-0 h1">
+            <i class="bi bi-diagram-3-fill me-2"></i> ETL Demand Center
+        </span>
+        <div class="d-flex align-items-center">
+            <span class="text-white-50 me-3 d-none d-sm-inline small">Informatica PowerCenter</span>
+            <a href="/admin" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                <i class="bi bi-person-lock me-1"></i> Admin
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card card-stats border-0 shadow-sm h-100 border-start border-primary border-4">
+                        <div class="card-body py-3">
+                            <h6 class="card-subtitle mb-1 text-muted small fw-bold">TOTAL</h6>
+                            <h3 class="card-title text-primary mb-0 fw-bold">{{ total }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-stats border-0 shadow-sm h-100 border-start border-warning border-4">
+                        <div class="card-body py-3">
+                            <h6 class="card-subtitle mb-1 text-muted small fw-bold">EM DESENV.</h6>
+                            <h3 class="card-title text-warning mb-0 fw-bold">{{ em_desenv }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-stats border-0 shadow-sm h-100 border-start border-danger border-4">
+                        <div class="card-body py-3">
+                            <h6 class="card-subtitle mb-1 text-muted small fw-bold">ALTA COMPLEX.</h6>
+                            <h3 class="card-title text-danger mb-0 fw-bold">{{ alta }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body d-flex align-items-center justify-content-center p-2">
+                    <canvas id="statusChart" style="max-height: 110px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-5">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+            <div class="row align-items-center">
+                <div class="col-md-5">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-list-task me-2"></i>Monitoramento de Prazos</h5>
+                </div>
+                <div class="col-md-7">
+                    <form method="GET" action="{% url 'home' %}" class="d-flex justify-content-end">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0" placeholder="Buscar ID, Mapping ou Pasta..." value="{{ valor_busca|default:'' }}">
+                            <button class="btn btn-primary px-3" type="submit">Filtrar</button>
+                            <a href="{% url 'exportar_excel' %}?search={{ valor_busca|default:'' }}" class="btn btn-success px-3">
+                                <i class="bi bi-file-earmark-excel"></i>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-3">
+            <div class="accordion accordion-flush" id="accordionDemandas">
+                {% for demanda in demandas %}
+                <div class="accordion-item shadow-sm border mb-2">
+                    <h2 class="accordion-header" id="heading{{ demanda.id }}">
+                        <div class="accordion-button collapsed px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ demanda.id }}">
+                            <div class="d-flex justify-content-between w-100 align-items-center">
+                                <div>
+                                    <span class="badge bg-{{ demanda.risco_cor }} me-3" title="{{ demanda.risco_texto }}">
+                                        <i class="bi bi-clock me-1"></i>
+                                        {% if demanda.data_implementacao %}{{ demanda.data_implementacao|date:"d/m" }}{% else %}--/--{% endif %}
+                                    </span>
+                                    <strong class="text-dark">{{ demanda.titulo }}</strong>
+                                    <small class="text-muted ms-2">#{{ demanda.id_demanda }}</small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <button type="button" class="btn btn-delete-list me-3"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal{{ demanda.id }}"
+                                            onclick="event.stopPropagation();">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+
+                                    {% if demanda.status == 'D' %}
+                                        <span class="badge bg-warning text-dark rounded-pill px-3">Desenv.</span>
+                                    {% elif demanda.status == 'T' %}
+                                        <span class="badge bg-info rounded-pill px-3 text-white">Homolog.</span>
+                                    {% else %}
+                                        <span class="badge bg-success rounded-pill px-3">Produção</span>
+                                    {% endif %}
+                                    <i class="bi bi-chevron-down ms-3 text-muted"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </h2>
+
+                    <div id="collapse{{ demanda.id }}" class="accordion-collapse collapse" data-bs-parent="#accordionDemandas">
+                        <div class="accordion-body bg-white border-top">
+                            <div class="row g-4">
+                                <div class="col-md-4 border-end">
+                                    <h6 class="fw-bold text-primary small mb-3"><i class="bi bi-info-circle me-1"></i> DETALHES</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        <li class="mb-1 text-truncate"><strong>Workflow:</strong> {{ demanda.workflow_mapping }}</li>
+                                        <li class="mb-1 text-truncate"><strong>Pasta PC:</strong> {{ demanda.folder_repositorio }}</li>
+                                        <li class="mb-1"><strong>TL:</strong> {{ demanda.lider_tecnico }}</li>
+                                        <li class="mb-1"><strong>Data Rec.:</strong> {{ demanda.data_recebimento|date:"d/m/Y" }}</li>
+
+                                        {% if demanda.link_jira %}
+                                            <li class="mt-2"><a href="{{ demanda.link_jira }}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 small">Jira <i class="bi bi-box-arrow-up-right"></i></a></li>
+                                        {% endif %}
+
+                                        {% if demanda.status == 'P' and demanda.tempo_execucao is not None %}
+                                            <li class="mt-3">
+                                                <div class="alert alert-success py-1 px-2 small mb-0 d-inline-block">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> Lead Time: <strong>{{ demanda.tempo_execucao }} dias</strong>
+                                                </div>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                <div class="col-md-8">
+                                    <h6 class="fw-bold text-primary small mb-3"><i class="bi bi-code-slash me-1"></i> SOLUÇÃO / SQL</h6>
+                                    <p class="small text-muted mb-3">{{ demanda.descricao_solucao|linebreaks }}</p>
+                                    {% if demanda.script_sql_shell %}
+                                        <pre class="m-0 shadow-sm"><code class="language-sql">{{ demanda.script_sql_shell }}</code></pre>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal fade" id="deleteModal{{ demanda.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow">
+                                <div class="modal-header border-0">
+                                    <h5 class="modal-title fw-bold">Confirmar</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center py-4">
+                                    <i class="bi bi-exclamation-octagon-fill modal-confirm-icon"></i>
+                                    <p class="mb-1 text-muted">Excluir permanentemente o mapping:</p>
+                                    <h5 class="fw-bold text-dark px-3">{{ demanda.id_demanda }} - {{ demanda.titulo }}</h5>
+                                </div>
+                                <div class="modal-footer border-0 justify-content-center pb-4">
+                                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
+                                    <a href="{% url 'excluir_demanda' demanda.id %}" class="btn btn-danger px-4 shadow-sm">Sim, Excluir</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                {% empty %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-journal-x display-4"></i>
+                    <p class="mt-3">Nenhuma demanda encontrada para os critérios atuais.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="text-center mt-5 pb-5 text-muted small border-top pt-4">
+    <div class="container">
+        <p class="mb-1"><strong>ETL Demand Center</strong> | Gestão Informatica PowerCenter</p>
+        <p>Desenvolvido com Python/Django & Bootstrap 5 por Júlio César S. Freitas.</p>
+    </div>
+</footer>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/highlight.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Iniciar Realce de Código
+    hljs.highlightAll();
+
+    // Iniciar Gráfico de Rosca
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ labels|safe|default:"[]" }},
+            datasets: [{
+                data: {{ data_grafico|safe|default:"[]" }},
+                backgroundColor: ['#ffc107', '#0dcaf0', '#198754'],
+                hoverOffset: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            cutout: '75%',
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+</script>
+</body>
+</html>
