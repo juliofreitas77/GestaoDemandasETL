@@ -176,124 +176,101 @@
 
         <div class="card-body p-4 bg-light-subtle">
             {% for demanda in demandas %}
-            <div class="demanda-item p-3 shadow-sm">
-                <div class="row align-items-center">
-                    <div class="col-md-3">
-                        <div class="d-flex align-items-center">
-                            <span class="dot bg-{{ demanda.semaforo_cor }} me-2 shadow-sm"></span>
-                            <div>
-                                <small class="text-muted d-block" style="font-size: 0.7rem; font-weight: 700;">IMPLANTAÇÃO</small>
-                                <span class="fw-bold {% if demanda.semaforo_cor == 'danger' %}text-danger{% endif %}">
-                                    {{ demanda.data_implementacao|date:"d/m/Y"|default:"Não definida" }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-5">
-                        <h6 class="mb-1 fw-bold">{{ demanda.titulo }}</h6>
-                        <div class="d-flex align-items-center">
-                            <small class="text-muted me-3">#{{ demanda.id_demanda }}</small>
-                            <div class="progress w-100" style="height: 6px; background-color: #e9ecef;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ demanda.progresso_cor }}"
-                                     role="progressbar"
-                                     style="width: {{ demanda.progresso }}%;"
-                                     aria-valuenow="{{ demanda.progresso }}"
-                                     aria-valuemin="0"
-                                     aria-valuemax="100">
+                <div class="demanda-item p-3 shadow-sm">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <span class="dot bg-{{ demanda.semaforo_cor }} me-2 shadow-sm"></span>
+                                <div>
+                                    <small class="text-muted d-block" style="font-size: 0.7rem; font-weight: 700;">IMPLANTAÇÃO</small>
+                                    <span class="fw-bold {% if demanda.semaforo_cor == 'danger' %}text-danger{% endif %}">
+                                        {{ demanda.data_implementacao|date:"d/m/Y"|default:"Não definida" }}
+                                    </span>
                                 </div>
                             </div>
-                            <small class="ms-2 fw-bold text-{{ demanda.progresso_cor }}" style="font-size: 0.7rem;">
-                                {{ demanda.progresso }}%
-                            </small>
+                        </div>
+
+                        <div class="col-md-5">
+                            <h6 class="mb-1 fw-bold">{{ demanda.titulo }}</h6>
+                            <div class="d-flex align-items-center">
+                                <small class="text-muted me-3">#{{ demanda.id_demanda }}</small>
+                                <div class="progress w-100" style="height: 6px; background-color: #e9ecef;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ demanda.progresso_cor }}"
+                                        role="progressbar"
+                                        style="width: {{ demanda.progresso }}%;"
+                                        aria-valuenow="{{ demanda.progresso }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <small class="ms-2 fw-bold text-{{ demanda.progresso_cor }}" style="font-size: 0.7rem;">
+                                    {{ demanda.progresso }}%
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 d-flex justify-content-end align-items-center gap-3">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-{{ demanda.semaforo_cor }} py-1 px-3 rounded-pill fw-bold dropdown-toggle" data-bs-toggle="dropdown">
+                                    {{ demanda.get_status_display }}
+                                </button>
+                                <ul class="dropdown-menu shadow border-0">
+                                    <li><form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}<input type="hidden" name="status" value="D"><button type="submit" class="dropdown-item small">Desenvolvimento</button></form></li>
+                                    <li><form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}<input type="hidden" name="status" value="T"><button type="submit" class="dropdown-item small">Testes</button></form></li>
+                                    <li><form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}<input type="hidden" name="status" value="P"><button type="submit" class="dropdown-item small">Produção</button></form></li>
+                                </ul>
+                            </div>
+
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'editar_demanda' demanda.id %}" class="btn btn-sm btn-outline-secondary border-0" title="Editar">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger border-0" data-bs-toggle="modal" data-bs-target="#confirmDelete{{ demanda.id }}" title="Excluir">
+                                    <i class="bi bi-trash3-fill fs-5"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary border-0" type="button" data-bs-toggle="collapse" data-bs-target="#detalhes{{ demanda.id }}" title="Ver Detalhes">
+                                    <i class="bi bi-eye-fill fs-5"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="col-md-4 text-end">
-                        <div class="btn-group me-2">
-                            <button class="btn btn-sm btn-{{ demanda.semaforo_cor }} py-1 px-3 rounded-pill fw-bold dropdown-toggle" data-bs-toggle="dropdown">
-                                {{ demanda.get_status_display }}
-                            </button>
-                            <ul class="dropdown-menu shadow border-0">
-                                <li>
-                                    <form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}
-                                        <input type="hidden" name="status" value="D">
-                                        <button type="submit" class="dropdown-item small">Desenvolvimento</button>
-                                    </form>
-                                </li>
-                                <li>
-                                    <form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}
-                                        <input type="hidden" name="status" value="T">
-                                        <button type="submit" class="dropdown-item small">Testes</button>
-                                    </form>
-                                </li>
-                                <li>
-                                    <form method="post" action="{% url 'alterar_status' demanda.id %}">{% csrf_token %}
-                                        <input type="hidden" name="status" value="P">
-                                        <button type="submit" class="dropdown-item small">Produção</button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="btn-group">
-                            <a href="{% url 'editar_demanda' demanda.id %}" class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil-square"></i></a>
-                            <button class="btn btn-sm btn-outline-danger border-0" data-bs-toggle="modal" data-bs-target="#confirmDelete{{ demanda.id }}"><i class="bi bi-trash3-fill"></i></button>
-                            <button class="btn btn-sm btn-outline-primary border-0" data-bs-toggle="collapse" data-bs-target="#detalhes{{ demanda.id }}"><i class="bi bi-eye-fill"></i></button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="collapse mt-3 pt-3 border-top" id="detalhes{{ demanda.id }}">
-                    <div class="row g-3">
-                        <div class="col-md-4 border-end">
-                            <h6 class="card-label text-primary">DETALHES</h6>
-                            <ul class="list-unstyled small mt-2">
-                                <li><strong>TL:</strong> {{ demanda.lider_tecnico }}</li>
-                                <li><strong>Rec.:</strong> {{ demanda.data_recebimento|date:"d/m/Y" }}</li>
-                                <li><strong>Workflow:</strong> {{ demanda.workflow_mapping }}</li>
-                                {% if demanda.tempo_execucao %}
-                                <li class="mt-2 text-success fw-bold"><i class="bi bi-stopwatch me-1"></i>Entrega: {{ demanda.tempo_execucao }} dias</li>
+                    <div class="collapse mt-3 pt-3 border-top" id="detalhes{{ demanda.id }}">
+                        <div class="row g-3">
+                            <div class="col-md-4 border-end">
+                                <h6 class="card-label text-primary mb-2">DETALHES</h6>
+                                <div class="small mt-2">
+                                    <p class="mb-1"><strong>TL:</strong> {{ demanda.lider_tecnico }}</p>
+                                    <p class="mb-1"><strong>Rec.:</strong> {{ demanda.data_recebimento|date:"d/m/Y" }}</p>
+                                    <p class="mb-1"><strong>Workflow:</strong> {{ demanda.workflow_mapping }}</p>
+                                    <hr class="my-2 opacity-25">
+                                    <div class="d-flex flex-column gap-2">
+                                        {% if demanda.link_jira %}
+                                        <a href="{{ demanda.link_jira }}" target="_blank" class="text-decoration-none fw-bold" style="color: #0052cc;">
+                                            <i class="bi bi-box-arrow-up-right me-2"></i>Abrir no Jira
+                                        </a>
+                                        {% endif %}
+                                        {% if demanda.anexo_proposta %}
+                                        <a href="{{ demanda.anexo_proposta.url }}" target="_blank" class="text-decoration-none fw-bold text-success">
+                                            <i class="bi bi-file-earmark-pdf-fill me-2"></i>Proposta Técnica (PDF)
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <h6 class="card-label text-primary mb-2">SOLUÇÃO</h6>
+                                <p class="small text-secondary mb-2">{{ demanda.descricao_solucao|default:"Nenhuma descrição informada." }}</p>
+                                {% if demanda.script_sql_shell %}
+                                <div class="position-relative">
+                                    <pre class="bg-dark text-info p-3 rounded small" style="max-height: 200px; overflow-y: auto;"><code>{{ demanda.script_sql_shell }}</code></pre>
+                                </div>
                                 {% endif %}
-                                {% if demanda.link_jira %}
-                                <li class="mt-1"><a href="{{ demanda.link_jira }}" target="_blank" class="text-decoration-none fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir Jira</a></li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                        <div class="col-md-8">
-                            <h6 class="card-label text-primary">SOLUÇÃO</h6>
-                            <p class="small text-secondary mt-2">{{ demanda.descricao_solucao }}</p>
-                            {% if demanda.script_sql_shell %}
-                                <pre class="bg-dark text-info p-2 rounded small"><code>{{ demanda.script_sql_shell }}</code></pre>
-                            {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="modal fade" id="confirmDelete{{ demanda.id }}" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0">
-                        <div class="modal-header bg-danger text-white border-0">
-                            <h5 class="modal-title fw-bold">Excluir Demanda</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body p-4 text-center">
-                            <p>Deseja excluir permanentemente: <strong>{{ demanda.titulo }}</strong>?</p>
-                        </div>
-                        <div class="modal-footer border-0 justify-content-center">
-                            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                            <form method="POST" action="{% url 'excluir_demanda' demanda.id %}">{% csrf_token %}
-                                <button type="submit" class="btn btn-danger rounded-pill px-4">Excluir</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="text-center py-5">
-                <i class="bi bi-search fs-1 text-muted opacity-25"></i>
-                <p class="text-muted mt-3">Nenhuma demanda ativa encontrada.</p>
-            </div>
+                            
             {% endfor %}
         </div>
     </div>

@@ -31,7 +31,8 @@ urlpatterns = [
     path('alterar-status/<int:id>/', views.alterar_status, name='alterar_status'),
     path('editar/<int:id>/', views.editar_demanda, name='editar_demanda'),
     path('excluir/<int:id>/', excluir_demanda, name='excluir_demanda'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 
 # Isso permite que o Django "enxergue" sua pasta static durante o desenvolvimento
 if settings.DEBUG:
